@@ -1,0 +1,120 @@
+@{
+    ViewData["Title"] = "Home";
+}
+
+<section class="hero">
+    <div class="hero-content">
+        <p class="hero-eyebrow">Welcome to FlavorCraft</p>
+        <h1>Cook with Passion,<br/><em>Eat with Joy</em></h1>
+        <p class="hero-sub">Discover hundreds of recipes from beginner-friendly to chef-level. Share your creations, learn pro tips, and fall in love with cooking.</p>
+        <div class="hero-actions">
+            <a asp-controller="Recipe" asp-action="Index" class="btn-primary">Browse Recipes</a>
+            <a asp-controller="Home" asp-action="Tips" class="btn-outline">Cooking Tips</a>
+        </div>
+    </div>
+    <div class="hero-visual">
+        <div class="hero-img-wrap">
+            <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=700" alt="Delicious food" />
+        </div>
+    </div>
+</section>
+
+<section class="section categories-section">
+    <div class="container">
+        <h2 class="section-title">Browse by Category</h2>
+        <div class="categories-grid">
+            @{
+                var catIcons = new Dictionary<string, string> {
+                    {"Breakfast","🥞"},{"Pasta","🍝"},{"Seafood","🐟"},
+                    {"Asian","🍜"},{"Dessert","🍰"},{"Salads","🥗"}
+                };
+            }
+            @foreach (var cat in (List<string>)ViewBag.Categories)
+            {
+                var icon = catIcons.ContainsKey(cat) ? catIcons[cat] : "🍽️";
+                <a asp-controller="Recipe" asp-action="Index" asp-route-category="@cat" class="category-card">
+                    <span class="cat-icon">@icon</span>
+                    <span class="cat-name">@cat</span>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="section section-cream">
+    <div class="container">
+        <h2 class="section-title">Most Loved Recipes</h2>
+        <p class="section-sub">Our community's all-time favorites — rated and reviewed by home cooks like you.</p>
+        <div class="recipes-grid featured">
+            @foreach (var recipe in (List<Recipe>)ViewBag.FeaturedRecipes)
+            {
+                <div class="recipe-card">
+                    <div class="recipe-img">
+                        <img src="@recipe.ImageUrl" alt="@recipe.Title" />
+                        <span class="recipe-badge">@recipe.Category</span>
+                        <span class="recipe-likes">❤️ @recipe.Likes</span>
+                    </div>
+                    <div class="recipe-info">
+                        <h3>@recipe.Title</h3>
+                        <p>@recipe.Description</p>
+                        <div class="recipe-meta">
+                            <span>⏱ @(recipe.PrepTimeMinutes + recipe.CookTimeMinutes) min</span>
+                            <span>👤 @recipe.Servings servings</span>
+                            <span class="difficulty @recipe.Difficulty.ToLower()">@recipe.Difficulty</span>
+                        </div>
+                        <a asp-controller="Recipe" asp-action="Details" asp-route-id="@recipe.Id" class="btn-card">View Recipe →</a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-header-row">
+            <h2 class="section-title">Latest Recipes</h2>
+            <a asp-controller="Recipe" asp-action="Index" class="view-all">View All →</a>
+        </div>
+        <div class="recipes-grid">
+            @foreach (var recipe in (List<Recipe>)ViewBag.LatestRecipes)
+            {
+                <div class="recipe-card">
+                    <div class="recipe-img">
+                        <img src="@recipe.ImageUrl" alt="@recipe.Title" />
+                        <span class="recipe-badge">@recipe.Category</span>
+                    </div>
+                    <div class="recipe-info">
+                        <h3>@recipe.Title</h3>
+                        <p>@recipe.Description</p>
+                        <div class="recipe-meta">
+                            <span>⏱ @(recipe.PrepTimeMinutes + recipe.CookTimeMinutes) min</span>
+                            <span class="difficulty @recipe.Difficulty.ToLower()">@recipe.Difficulty</span>
+                        </div>
+                        <a asp-controller="Recipe" asp-action="Details" asp-route-id="@recipe.Id" class="btn-card">View Recipe →</a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="section tips-preview section-dark">
+    <div class="container">
+        <h2 class="section-title light">Pro Cooking Tips</h2>
+        <p class="section-sub light">Elevate your skills with expert techniques used by professional chefs.</p>
+        <div class="tips-grid">
+            @foreach (var tip in (List<CookingTip>)ViewBag.Tips)
+            {
+                <div class="tip-card">
+                    <div class="tip-icon">@tip.Icon</div>
+                    <h3>@tip.Title</h3>
+                    <p>@tip.Content</p>
+                </div>
+            }
+        </div>
+        <div style="text-align:center; margin-top:2rem;">
+            <a asp-controller="Home" asp-action="Tips" class="btn-outline-light">All Tips →</a>
+        </div>
+    </div>
+</section>

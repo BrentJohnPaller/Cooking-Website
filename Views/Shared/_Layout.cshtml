@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FlavorCraft</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="brand" asp-controller="Home" asp-action="Index">
+            🍳 <span>FlavorCraft</span>
+        </a>
+        <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+            <ul class="nav-links">
+                <li><a asp-controller="Home" asp-action="Index">Home</a></li>
+                <li><a asp-controller="Recipe" asp-action="Index">Recipes</a></li>
+                <li><a asp-controller="Post" asp-action="Index">Community</a></li>
+                <li><a asp-controller="Home" asp-action="Tips">Cooking Tips</a></li>
+                <li><a asp-controller="Home" asp-action="About">About</a></li>
+                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    <li>
+                        <a asp-controller="Account" asp-action="Profile" class="nav-profile-link">
+                            👤 Profile
+                        </a>
+                    </li>
+                    <li>
+                        <form asp-controller="Account" asp-action="Logout" method="post" style="margin:0;">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="nav-logout-btn">Log out</button>
+                        </form>
+                    </li>
+                }
+                else
+                {
+                    <li><a asp-controller="Account" asp-action="Login" class="btn-primary" style="padding:.4rem 1rem;">Log in</a></li>
+                    <li><a asp-controller="Account" asp-action="Register">Sign up</a></li>
+                }
+            </ul>
+    </div>
+</nav>
+
+<main>
+    @RenderBody()
+</main>
+
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-brand">
+            <h3>🍳 FlavorCraft</h3>
+            <p>Bringing joy to kitchens everywhere. Share recipes, learn techniques, and cook with confidence.</p>
+        </div>
+        <div class="footer-links">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a asp-controller="Recipe" asp-action="Index">All Recipes</a></li>
+                <li><a asp-controller="Home" asp-action="Tips">Cooking Tips</a></li>
+                <li><a asp-controller="Home" asp-action="About">About Us</a></li>
+            </ul>
+        </div>
+        <div class="footer-links">
+            <h4>Categories</h4>
+            <ul>
+                <li><a asp-controller="Recipe" asp-action="Index" asp-route-category="Breakfast">Breakfast</a></li>
+                <li><a asp-controller="Recipe" asp-action="Index" asp-route-category="Pasta">Pasta</a></li>
+                <li><a asp-controller="Recipe" asp-action="Index" asp-route-category="Dessert">Desserts</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; @DateTime.Now.Year FlavorCraft. Made with ❤️ and great food.</p>
+    </div>
+</footer>
+
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

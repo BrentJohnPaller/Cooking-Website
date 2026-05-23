@@ -1,0 +1,779 @@
+@model CookingWebsite.Models.CreatePostViewModel
+@using CookingWebsite.Models
+
+@{
+    ViewData["Title"] = "Share a Post";
+}
+
+<section class="page-header community-header">
+    <div class="container">
+        <h1>Share with the Community</h1>
+        <p>Post a recipe, share a photo, embed a video, or drop a cooking tip.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container create-container">
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert-error">⚠️ Please fill in all required fields.</div>
+        }
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert-success">✅ @TempData["Success"]</div>
+        }
+
+        <div class="type-selector">
+
+            <button type="button"
+                    class="type-btn @(Model.Type == PostType.Photo ? "active" : "")"
+                    onclick="selectType('Photo')"
+                    data-type="Photo">
+
+                <span class="type-icon">🖼️</span>
+                <span class="type-label">Food Photo</span>
+                <span class="type-desc">Share a photo with a caption</span>
+            </button>
+
+            <button type="button"
+                    class="type-btn @(Model.Type == PostType.Recipe ? "active" : "")"
+                    onclick="selectType('Recipe')"
+                    data-type="Recipe">
+
+                <span class="type-icon">📸</span>
+                <span class="type-label">Recipe Post</span>
+                <span class="type-desc">Share a dish with photos & steps</span>
+            </button>
+
+            <button type="button"
+                    class="type-btn @(Model.Type == PostType.Video ? "active" : "")"
+                    onclick="selectType('Video')"
+                    data-type="Video">
+
+                <span class="type-icon">🎥</span>
+                <span class="type-label">Video Post</span>
+                <span class="type-desc">Embed a YouTube cooking video</span>
+            </button>
+
+            <button type="button"
+                    class="type-btn @(Model.Type == PostType.Tip ? "active" : "")"
+                    onclick="selectType('Tip')"
+                    data-type="Tip">
+
+                <span class="type-icon">💡</span>
+                <span class="type-label">Practical Tip</span>
+                <span class="type-desc">Share a technique or kitchen trick</span>
+            </button>
+        </div>
+
+        <form asp-controller="Post"
+              asp-action="Create"
+              method="post"
+              class="create-form"
+              enctype="multipart/form-data">
+
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" asp-for="Type" id="typeInput" />
+
+            <div class="form-section">
+
+                <div class="form-section-title">
+                    Basic Information
+                </div>
+
+                <div class="form-group">
+                    <label id="titleLabel">
+                        Title <span class="required">*</span>
+                    </label>
+
+                    <input asp-for="Title"
+                           class="form-input"
+                           id="titleInput"
+                           placeholder="Give your post a title..." />
+                </div>
+
+                <div class="form-group">
+                    <label id="contentLabel">
+                        Description <span class="required">*</span>
+                    </label>
+
+                    <textarea asp-for="Content"
+                              class="form-textarea"
+                              rows="4"
+                              id="contentInput"
+                              placeholder="What's cooking? Tell the community..."></textarea>
+                </div>
+            </div>
+
+            <div id="photo-fields"
+                 class="type-fields"
+                 style="display:none;">
+
+                <div class="form-section">
+
+                    <div class="form-section-title">
+                        🖼️ Your Food Photo
+                    </div>
+
+                    <p class="form-hint">
+                        Upload one photo from your device (JPG, PNG, WEBP — max 10MB).
+                    </p>
+
+                    <div class="fb-photo-upload"
+                         onclick="document.getElementById('fbPhoto').click()">
+
+                        <input type="file"
+                               id="fbPhoto"
+                               name="Photo1"
+                               accept="image/*"
+                               style="display:none"
+                               onchange="previewFbPhoto(this)" />
+
+                        <div class="fb-upload-placeholder"
+                             id="fbPlaceholder">
+
+                            <span style="font-size:3rem;">📷</span>
+
+                            <span style="font-weight:700;font-size:1.1rem;">
+                                Click to upload your food photo
+                            </span>
+
+                            <small>
+                                JPG, PNG, WEBP up to 10MB
+                            </small>
+                        </div>
+
+                        <img id="fbPhotoPreview"
+                             style="display:none;width:100%;max-height:500px;object-fit:cover;border-radius:12px;" />
+                    </div>
+                </div>
+            </div>
+
+            <div id="recipe-fields"
+                 class="type-fields"
+                 style="display:none;">
+
+                <div class="form-section">
+
+                    <div class="form-section-title">
+                        📸 Recipe Photos
+                    </div>
+
+                    <p class="form-hint">
+                        Upload up to 3 photos. First photo is your main cover photo.
+                    </p>
+
+                    <div class="photo-upload-grid">
+
+                        <div class="photo-upload-box"
+                             onclick="document.getElementById('photo1').click()">
+
+                            <input type="file"
+                                   id="photo1"
+                                   name="Photo1"
+                                   accept="image/*"
+                                   style="display:none"
+                                   onchange="previewUpload(this,'prev1')" />
+
+                            <div class="upload-placeholder"
+                                 id="prev1-placeholder">
+
+                                <span class="upload-icon">📷</span>
+                                <span>Main Photo</span>
+                                <small>Click to upload</small>
+                            </div>
+
+                            <img id="prev1"
+                                 style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;" />
+                        </div>
+
+                        <div class="photo-upload-box"
+                             onclick="document.getElementById('photo2').click()">
+
+                            <input type="file"
+                                   id="photo2"
+                                   name="Photo2"
+                                   accept="image/*"
+                                   style="display:none"
+                                   onchange="previewUpload(this,'prev2')" />
+
+                            <div class="upload-placeholder"
+                                 id="prev2-placeholder">
+
+                                <span class="upload-icon">📷</span>
+                                <span>Photo 2</span>
+                                <small>Click to upload</small>
+                            </div>
+
+                            <img id="prev2"
+                                 style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;" />
+                        </div>
+
+                        <div class="photo-upload-box"
+                             onclick="document.getElementById('photo3').click()">
+
+                            <input type="file"
+                                   id="photo3"
+                                   name="Photo3"
+                                   accept="image/*"
+                                   style="display:none"
+                                   onchange="previewUpload(this,'prev3')" />
+
+                            <div class="upload-placeholder"
+                                 id="prev3-placeholder">
+
+                                <span class="upload-icon">📷</span>
+                                <span>Photo 3</span>
+                                <small>Click to upload</small>
+                            </div>
+
+                            <img id="prev3"
+                                 style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+
+                    <div class="form-section-title">
+                        🍳 Recipe Details
+                    </div>
+
+                    <div class="form-row four">
+
+                        <div class="form-group">
+                            <label>Category</label>
+
+                            <input asp-for="Category"
+                                   class="form-input"
+                                   list="category-suggestions"
+                                   placeholder="e.g. Filipino, Beef, Pasta..." />
+
+                            <datalist id="category-suggestions">
+                                <option value="Breakfast" />
+                                <option value="Pasta" />
+                                <option value="Seafood" />
+                                <option value="Asian" />
+                                <option value="Filipino" />
+                                <option value="Dessert" />
+                                <option value="Salads" />
+                                <option value="Soups" />
+                                <option value="Grilled" />
+                                <option value="Baking" />
+                                <option value="Beef" />
+                                <option value="Chicken" />
+                                <option value="Pork" />
+                                <option value="Vegetarian" />
+                                <option value="Vegan" />
+                            </datalist>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Difficulty</label>
+
+                            <select asp-for="Difficulty"
+                                    class="form-input">
+
+                                <option value="">Select...</option>
+                                <option>Easy</option>
+                                <option>Medium</option>
+                                <option>Hard</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Prep Time (min)</label>
+
+                            <input asp-for="PrepTimeMinutes"
+                                   type="number"
+                                   class="form-input"
+                                   placeholder="15"
+                                   min="1" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Cook Time (min)</label>
+
+                            <input asp-for="CookTimeMinutes"
+                                   type="number"
+                                   class="form-input"
+                                   placeholder="30"
+                                   min="1" />
+                        </div>
+                    </div>
+
+                    <div class="form-group"
+                         style="max-width:150px;">
+
+                        <label>Servings</label>
+
+                        <input asp-for="Servings"
+                               type="number"
+                               class="form-input"
+                               placeholder="4"
+                               min="1" />
+                    </div>
+                </div>
+
+                <div class="form-section">
+
+                    <div class="form-section-title">
+                        📋 Ingredients & Steps
+                    </div>
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+                            <label>
+                                Ingredients <small>(one per line)</small>
+                            </label>
+
+                            <textarea asp-for="Ingredients"
+                                      class="form-textarea"
+                                      rows="8"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                Steps / Instructions <small>(one per line)</small>
+                            </label>
+
+                            <textarea asp-for="Steps"
+                                      class="form-textarea"
+                                      rows="8"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="video-fields"
+                 class="type-fields"
+                 style="display:none;">
+
+                <div class="form-section">
+
+                    <div class="form-section-title">
+                        🎥 Video Details
+                    </div>
+
+                    <div class="form-group">
+
+                        <label>YouTube URL</label>
+
+                        <input asp-for="VideoEmbedUrl"
+                               class="form-input"
+                               id="videoUrlInput"
+                               placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                               oninput="previewVideo(this)" />
+
+                        <p class="form-hint">
+                            Paste any YouTube link — regular, short, or Shorts URL.
+                        </p>
+                    </div>
+
+                    <div class="video-preview-area"
+                         id="videoPreview"
+                         style="display:none;">
+
+                        <iframe id="videoIframe"
+                                width="100%"
+                                height="360"
+                                frameborder="0"
+                                allowfullscreen>
+                        </iframe>
+                    </div>
+
+                    <div class="video-tips-box">
+
+                        <strong>
+                            📌 Accepted URL formats:
+                        </strong>
+
+                        <ul>
+                            <li>
+                                <code>
+                                    https://www.youtube.com/watch?v=abc123
+                                </code>
+                            </li>
+
+                            <li>
+                                <code>
+                                    https://youtu.be/abc123
+                                </code>
+                            </li>
+
+                            <li>
+                                <code>
+                                    https://www.youtube.com/shorts/abc123
+                                </code>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tip-fields"
+                 class="type-fields"
+                 style="display:none;">
+
+                <div class="form-section">
+
+                    <div class="form-section-title">
+                        💡 Tip Details
+                    </div>
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Icon (pick an emoji)
+                            </label>
+
+                            <div class="emoji-grid">
+
+                                @{
+                                    var emojis = new[]
+                                    {
+                                                                "🧂","🌶️","🧄","🧅","🥚","🧈",
+                                                                "🔪","🍳","🥘","🫕","🧑‍🍳",
+                                                                "⏱️","🌡️","💧","🔥","🫙","🥄","🍋"
+                                                                };
+                                }
+
+                                @foreach (var e in emojis)
+                                {
+                                    <button type="button"
+                                            class="emoji-pick-btn"
+                                            onclick="selectEmoji('@e', event)">
+                                        @e
+                                    </button>
+                                }
+                            </div>
+
+                            <input asp-for="TipIcon"
+                                   class="form-input"
+                                   id="tipIconInput"
+                                   placeholder="Or type your own emoji..."
+                                   style="margin-top:.5rem;" />
+                        </div>
+
+                        <div class="form-group">
+
+                            <label>Category</label>
+
+                            <select asp-for="TipCategory"
+                                    class="form-input">
+
+                                <option value="">Select...</option>
+                                <option>Knife Skills</option>
+                                <option>Baking</option>
+                                <option>Spices & Seasoning</option>
+                                <option>Meat & Fish</option>
+                                <option>Vegetables</option>
+                                <option>Sauces & Stocks</option>
+                                <option>Kitchen Tools</option>
+                                <option>Food Safety</option>
+                                <option>General</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="tip-live-preview"
+                         id="tipPreview">
+
+                        <div class="tip-prev-icon"
+                             id="prevIcon">
+                            💡
+                        </div>
+
+                        <div>
+                            <div class="tip-prev-title"
+                                 id="prevTitle">
+                                Your tip title will appear here...
+                            </div>
+
+                            <div class="tip-prev-content"
+                                 id="prevContent">
+                                Your tip description will appear here...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+
+                <a asp-controller="Post"
+                   asp-action="Index"
+                   class="btn-outline">
+
+                    Cancel
+                </a>
+
+                <button type="submit"
+                        class="btn-primary">
+
+                    🚀 Publish Post
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+@section Scripts {
+
+    <script>
+
+        function selectType(type) {
+
+            document.getElementById('typeInput').value = type;
+
+            document.querySelectorAll('.type-btn')
+                .forEach(b => b.classList.remove('active'));
+
+            const activeBtn =
+                document.querySelector(`[data-type="${type}"]`);
+
+            if (activeBtn)
+                activeBtn.classList.add('active');
+
+            document.querySelectorAll('.type-fields')
+                .forEach(f => f.style.display = 'none');
+
+            const target =
+                document.getElementById(`${type.toLowerCase()}-fields`);
+
+            if (target)
+                target.style.display = 'block';
+
+            const titleInput =
+                document.getElementById('titleInput');
+
+            const contentInput =
+                document.getElementById('contentInput');
+
+            const contentLabel =
+                document.getElementById('contentLabel');
+
+            if (!titleInput || !contentInput || !contentLabel)
+                return;
+
+            if (type === 'Photo') {
+
+                titleInput.placeholder =
+                    "e.g. Tried making Sinigang today!";
+
+                contentInput.placeholder =
+                    "Tell us about this food.";
+
+                contentLabel.innerHTML =
+                    'Caption / Description <span class="required">*</span>';
+            }
+
+            else if (type === 'Recipe') {
+
+                titleInput.placeholder =
+                    "e.g. Grandma's Chicken Adobo";
+
+                contentInput.placeholder =
+                    "Tell the story behind this recipe...";
+
+                contentLabel.innerHTML =
+                    'Description / Story <span class="required">*</span>';
+            }
+
+            else if (type === 'Video') {
+
+                titleInput.placeholder =
+                    "e.g. How to julienne vegetables in 3 minutes";
+
+                contentInput.placeholder =
+                    "What will viewers learn from this video?";
+
+                contentLabel.innerHTML =
+                    'Description <span class="required">*</span>';
+            }
+
+            else if (type === 'Tip') {
+
+                titleInput.placeholder =
+                    "e.g. Always bloom your spices first";
+
+                contentInput.placeholder =
+                    "Explain your tip in detail...";
+
+                contentLabel.innerHTML =
+                    'Tip Details <span class="required">*</span>';
+            }
+        }
+
+        function previewFbPhoto(input) {
+
+            const file = input.files[0];
+
+            if (!file)
+                return;
+
+            const img =
+                document.getElementById('fbPhotoPreview');
+
+            const placeholder =
+                document.getElementById('fbPlaceholder');
+
+            const reader = new FileReader();
+
+            reader.onload = e => {
+
+                img.src = e.target.result;
+
+                img.style.display = 'block';
+
+                placeholder.style.display = 'none';
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        function previewUpload(input, imgId) {
+
+            const file = input.files[0];
+
+            if (!file)
+                return;
+
+            const img =
+                document.getElementById(imgId);
+
+            const placeholder =
+                document.getElementById(imgId + '-placeholder');
+
+            const reader = new FileReader();
+
+            reader.onload = e => {
+
+                img.src = e.target.result;
+
+                img.style.display = 'block';
+
+                placeholder.style.display = 'none';
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        function extractYoutubeId(url) {
+
+            try {
+
+                const u = new URL(url);
+
+                if (u.hostname.includes('youtu.be'))
+                    return u.pathname.slice(1).split('?')[0];
+
+                if (u.pathname.startsWith('/shorts/'))
+                    return u.pathname.replace('/shorts/', '').split('?')[0];
+
+                if (u.pathname.startsWith('/embed/'))
+                    return u.pathname.replace('/embed/', '').split('?')[0];
+
+                return u.searchParams.get('v');
+            }
+
+            catch {
+
+                return null;
+            }
+        }
+
+        function previewVideo(input) {
+
+            const url =
+                input.value.trim();
+
+            const preview =
+                document.getElementById('videoPreview');
+
+            const iframe =
+                document.getElementById('videoIframe');
+
+            const id =
+                extractYoutubeId(url);
+
+            if (id) {
+
+                iframe.src =
+                    `https://www.youtube.com/embed/${id}`;
+
+                preview.style.display = 'block';
+            }
+
+            else {
+
+                preview.style.display = 'none';
+            }
+        }
+
+        function selectEmoji(emoji, event) {
+
+            document.getElementById('tipIconInput').value = emoji;
+
+            document.getElementById('prevIcon').textContent = emoji;
+
+            document.querySelectorAll('.emoji-pick-btn')
+                .forEach(b => b.classList.remove('selected'));
+
+            event.target.classList.add('selected');
+        }
+
+        document.querySelector('input[name="Title"]')
+        ?.addEventListener('input', function () {
+
+            const el =
+                document.getElementById('prevTitle');
+
+            if (el)
+                el.textContent =
+                    this.value || 'Your tip title will appear here...';
+        });
+
+        document.querySelector('textarea[name="Content"]')
+        ?.addEventListener('input', function () {
+
+            const el =
+                document.getElementById('prevContent');
+
+            const txt =
+                this.value;
+
+            if (el)
+                el.textContent =
+                    txt.length > 120
+                        ? txt.substring(0, 120) + '…'
+                        : txt || 'Your tip description...';
+        });
+
+        document.getElementById('tipIconInput')
+        ?.addEventListener('input', function () {
+
+            const el =
+                document.getElementById('prevIcon');
+
+            if (el)
+                el.textContent =
+                    this.value || '💡';
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const t =
+                document.getElementById('typeInput').value;
+
+            selectType(t && t.length > 0 ? t : 'Photo');
+        });
+
+    </script>
+}

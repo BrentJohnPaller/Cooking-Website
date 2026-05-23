@@ -1,0 +1,84 @@
+@model Recipe
+@{
+    ViewData["Title"] = Model.Title;
+    int totalTime = Model.PrepTimeMinutes + Model.CookTimeMinutes;
+}
+
+<section class="recipe-detail-hero" style="background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('@Model.ImageUrl'); background-size:cover; background-position:center;">
+    <div class="container">
+        <a asp-controller="Recipe" asp-action="Index" class="back-link">← Back to Recipes</a>
+        <span class="recipe-badge-lg">@Model.Category</span>
+        <h1>@Model.Title</h1>
+        <p class="recipe-desc-hero">@Model.Description</p>
+        <div class="recipe-stats">
+            <div class="stat"><span class="stat-val">@Model.PrepTimeMinutes</span><span class="stat-label">Prep (min)</span></div>
+            <div class="stat"><span class="stat-val">@Model.CookTimeMinutes</span><span class="stat-label">Cook (min)</span></div>
+            <div class="stat"><span class="stat-val">@totalTime</span><span class="stat-label">Total (min)</span></div>
+            <div class="stat"><span class="stat-val">@Model.Servings</span><span class="stat-label">Servings</span></div>
+            <div class="stat"><span class="stat-val difficulty-text @Model.Difficulty.ToLower()">@Model.Difficulty</span><span class="stat-label">Difficulty</span></div>
+        </div>
+        <div class="recipe-author-bar">
+            <span>👨‍🍳 by @Model.Author</span>
+            <span>📅 @Model.DatePosted.ToString("MMMM dd, yyyy")</span>
+            <span>❤️ @Model.Likes likes</span>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container recipe-detail-body">
+        <div class="ingredients-col">
+            <h2>Ingredients</h2>
+            <ul class="ingredients-list">
+                @foreach (var ingredient in Model.Ingredients)
+                {
+                    <li>
+                        <label class="ingredient-item">
+                            <input type="checkbox" class="ingredient-check" />
+                            <span>@ingredient</span>
+                        </label>
+                    </li>
+                }
+            </ul>
+        </div>
+        <div class="steps-col">
+            <h2>Instructions</h2>
+            <ol class="steps-list">
+                @{int stepNum = 1;}
+                @foreach (var step in Model.Steps)
+                {
+                    <li class="step-item">
+                        <div class="step-num">@stepNum</div>
+                        <p>@step</p>
+                    </li>
+                    stepNum++;
+                }
+            </ol>
+        </div>
+    </div>
+</section>
+
+@if (((List<Recipe>)ViewBag.RelatedRecipes).Count > 0)
+{
+    <section class="section section-cream">
+        <div class="container">
+            <h2 class="section-title">More @Model.Category Recipes</h2>
+            <div class="recipes-grid">
+                @foreach (var r in (List<Recipe>)ViewBag.RelatedRecipes)
+                {
+                    <div class="recipe-card">
+                        <div class="recipe-img">
+                            <img src="@r.ImageUrl" alt="@r.Title" />
+                            <span class="recipe-badge">@r.Category</span>
+                        </div>
+                        <div class="recipe-info">
+                            <h3>@r.Title</h3>
+                            <p>@r.Description</p>
+                            <a asp-controller="Recipe" asp-action="Details" asp-route-id="@r.Id" class="btn-card">View Recipe →</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
