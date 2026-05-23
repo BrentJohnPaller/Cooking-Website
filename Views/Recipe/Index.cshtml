@@ -1,0 +1,124 @@
+@model List<CookingWebsite.Models.Recipe>
+@using CookingWebsite.Models
+@{
+    ViewData["Title"] = "Recipes";
+}
+
+<section class="page-header">
+    <div class="container">
+        <h1>All Recipes</h1>
+        <p>From quick weeknight dinners to indulgent weekend feasts.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+
+        <div class="filter-bar">
+            <div class="search-form">
+                <input type="text" id="searchInput" placeholder="Search recipes..."
+                       class="search-input" oninput="filterRecipes()" />
+            </div>
+            <div class="category-filters" id="categoryFilters">
+                <button class="filter-tag active" data-category="all"
+                        onclick="setCategory('all', this)">
+                    All
+                </button>
+                @foreach (var cat in (List<string>)ViewBag.Categories)
+                {
+                    <button class="filter-tag" data-category="@cat.ToLower()"
+                            onclick="setCategory('@cat.ToLower()', this)">
+                        @cat
+                    </button>
+                }
+            </div>
+        </div>
+
+        <p class="results-count" id="resultsCount">@Model.Count recipe@(Model.Count != 1 ? "s" : "") found</p>
+
+        <div class="recipes-grid" id="recipesGrid">
+            @foreach (var recipe in Model)
+            {
+                <div class="recipe-card"
+                     data-title="@recipe.Title.ToLower()"
+                     data-description="@recipe.Description.ToLower()"
+                     data-category="@recipe.Category.ToLower()">
+                    <div class="recipe-img">
+                        <img src="@recipe.ImageUrl" alt="@recipe.Title" loading="lazy" />
+                        <span class="recipe-badge">@recipe.Category</span>
+                        <span class="recipe-likes">❤️ @recipe.Likes</span>
+                    </div>
+                    <div class="recipe-info">
+                        <h3>@recipe.Title</h3>
+                        <p>@recipe.Description</p>
+                        <div class="recipe-meta">
+                            <span>⏱ @(recipe.PrepTimeMinutes + recipe.CookTimeMinutes) min</span>
+                            <span>👤 @recipe.Servings</span>
+                            <span class="difficulty @recipe.Difficulty.ToLower()">@recipe.Difficulty</span>
+                        </div>
+                        <a asp-controller="Recipe" asp-action="Details"
+                           asp-route-id="@recipe.Id" class="btn-card">View Recipe →</a>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div id="noResults" style="display:none;" class="no-results">
+            <p>🍽️ No recipes found. Try a different search or category.</p>
+            <button onclick="clearFilters()" class="btn-primary">Clear Filters</button>
+        </div>
+
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        let activeCategory = 'all';
+
+        function setCategory(category, btn) {
+            activeCategory = category;
+            document.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterRecipes();
+        }
+
+        function filterRecipes() {
+            const search = document.getElementById('searchInput').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('#recipesGrid .recipe-card');
+            let visible = 0;
+
+            cards.forEach(card => {
+                const title       = card.dataset.title       || '';
+                const description = card.dataset.description || '';
+                const category    = card.dataset.category    || '';
+
+                const matchesCategory = activeCategory === 'all' || category === activeCategory;
+                const matchesSearch   = !search ||
+                    title.includes(search) ||
+                    description.includes(search) ||
+                    category.includes(search);
+
+                if (matchesCategory && matchesSearch) {
+                    card.style.display = '';
+                    visible++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            document.getElementById('resultsCount').textContent =
+                `${visible} recipe${visible !== 1 ? 's' : ''} found`;
+
+            document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+            document.getElementById('recipesGrid').style.display = visible === 0 ? 'none' : '';
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            activeCategory = 'all';
+            document.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-category="all"]').classList.add('active');
+            filterRecipes();
+        }
+    </script>
+}

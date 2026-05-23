@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Cooking Tips";
+}
+
+<section class="page-header">
+    <div class="container">
+        <h1>Pro Cooking Tips</h1>
+        <p>Master the kitchen with these expert techniques and tricks.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="tips-grid-full">
+            @foreach (var tip in (List<CookingWebsite.Models.CookingTip>)ViewBag.Tips)
+            {
+                <div class="tip-card-full">
+                    <div class="tip-icon-lg">@tip.Icon</div>
+                    <div class="tip-content">
+                        <h3>@tip.Title</h3>
+                        <p>@tip.Content</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>

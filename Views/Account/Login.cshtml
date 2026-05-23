@@ -1,0 +1,47 @@
+﻿@model CookingWebsite.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<section class="page-header community-header">
+    <div class="container">
+        <h1>Welcome Back</h1>
+        <p>Log in to your FlavorCraft account.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container" style="max-width:480px;">
+        <div class="auth-card">
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert-error">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <div>⚠️ @error.ErrorMessage</div>
+                    }
+                </div>
+            }
+            <form asp-action="Login" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+                <div class="form-group">
+                    <label>Email</label>
+                    <input asp-for="Email" class="form-input" placeholder="you@email.com" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input asp-for="Password" type="password" class="form-input" placeholder="Your password" />
+                </div>
+                <div class="form-group" style="flex-direction:row;align-items:center;gap:.5rem;">
+                    <input asp-for="RememberMe" type="checkbox" style="width:auto;" />
+                    <label style="font-weight:400;margin:0;">Remember me</label>
+                </div>
+                <button type="submit" class="btn-primary" style="width:100%;margin-top:1rem;">Log In</button>
+            </form>
+            <p style="text-align:center;margin-top:1.25rem;color:var(--text-light);">
+                Don't have an account? <a asp-action="Register" style="color:var(--orange);font-weight:700;">Sign up</a>
+            </p>
+        </div>
+    </div>
+</section>

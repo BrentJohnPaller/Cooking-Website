@@ -1,0 +1,287 @@
+@model List<CookingWebsite.Models.Post>
+@using CookingWebsite.Models
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<AppUser> SignInManager
+@inject UserManager<AppUser> UserMgr
+@{
+    ViewData["Title"] = "Community Posts";
+    var currentUser = SignInManager.IsSignedIn(User) ? await UserMgr.GetUserAsync(User) : null;
+    var authorPhotos = (Dictionary<string, string?>)ViewBag.AuthorPhotos;
+}
+
+<section class="page-header community-header">
+    <div class="container">
+        <h1>Community Kitchen</h1>
+        <p>Share your recipes, food photos, videos, and cooking tips.</p>
+        <a asp-controller="Post" asp-action="Create" class="btn-primary"
+           style="margin-top:1.25rem;display:inline-block;">+ Share Something</a>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="community-layout">
+
+            <div class="feed-col">
+                <div class="feed-tabs">
+                    <button class="feed-tab active" data-filter="all" onclick="filterPosts('all', this)">
+                        All <span class="tab-count" id="count-all">@Model.Count</span>
+                    </button>
+                    <button class="feed-tab" data-filter="photo" onclick="filterPosts('photo', this)">
+                        🖼️ Photos <span class="tab-count" id="count-photo">@Model.Count(p => p.Type == PostType.Photo)</span>
+                    </button>
+                    <button class="feed-tab" data-filter="recipe" onclick="filterPosts('recipe', this)">
+                        📸 Recipes <span class="tab-count" id="count-recipe">@Model.Count(p => p.Type == PostType.Recipe)</span>
+                    </button>
+                    <button class="feed-tab" data-filter="video" onclick="filterPosts('video', this)">
+                        🎥 Videos <span class="tab-count" id="count-video">@Model.Count(p => p.Type == PostType.Video)</span>
+                    </button>
+                    <button class="feed-tab" data-filter="tip" onclick="filterPosts('tip', this)">
+                        💡 Tips <span class="tab-count" id="count-tip">@Model.Count(p => p.Type == PostType.Tip)</span>
+                    </button>
+                </div>
+
+                <div id="postsContainer">
+                    @if (!Model.Any())
+                    {
+                        <div style="text-align:center;padding:4rem 0;">
+                            <p style="font-size:1.2rem;color:var(--text-light);">No posts yet. Be the first to share!</p>
+                            <a asp-controller="Post" asp-action="Create" class="btn-primary"
+                               style="margin-top:1rem;display:inline-block;">Share Now</a>
+                        </div>
+                    }
+
+                    @foreach (var post in Model)
+                    {
+                        <div class="post-card @post.Type.ToString().ToLower()"
+                             data-type="@post.Type.ToString().ToLower()">
+
+                            <div class="post-header">
+                                @{
+                                    authorPhotos.TryGetValue(post.Author, out var postAuthorPhoto);
+                                }
+                                @if (postAuthorPhoto != null)
+                                {
+                                    <img src="@postAuthorPhoto" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="@post.Author" />
+                                }
+                                else
+                                {
+                                    <div class="author-avatar">@post.AuthorAvatar</div>
+                                }
+                            <div class="author-info">
+                                <strong>@post.Author</strong>
+                                <span>@post.DatePosted.ToString("MMM dd, yyyy · h:mm tt")</span>
+                            </div>
+                            <div class="post-type-badge @post.Type.ToString().ToLower()">
+                                @(post.Type == PostType.Photo ? "🖼️ Photo" :
+                                                                post.Type == PostType.Recipe ? "📸 Recipe" :
+                                                                post.Type == PostType.Video ? "🎥 Video" : "💡 Tip")
+                                </div>
+                                @if (SignInManager.IsSignedIn(User) && currentUser?.DisplayName == post.Author)
+                                {
+                                    <form asp-controller="Post" asp-action="Delete" asp-route-id="@post.Id"
+                                          method="post" style="margin-left:.5rem;"
+                                          onsubmit="return confirm('Delete this post permanently?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="delete-btn" title="Delete post">🗑</button>
+                                    </form>
+                                }
+                            </div>
+
+                            @if (post.Type == PostType.Photo)
+                            {
+                                <div class="post-body" style="padding-bottom:.5rem;">
+                                    <h3 style="margin-bottom:.4rem;">
+                                        <a asp-controller="Post" asp-action="Details" asp-route-id="@post.Id"
+                                           style="font-weight:700;">
+                                            @post.Title
+                                        </a>
+                                    </h3>
+                                    <p style="font-size:1rem;line-height:1.6;white-space:pre-line;margin-bottom:.75rem;">
+                                        @(post.Content.Length > 300 ? post.Content[..300] + "…" : post.Content)
+                                    </p>
+                                </div>
+                                @if (post.PhotoUrl != null)
+                                {
+                                    <div class="fb-photo-display">
+                                        <img src="@post.PhotoUrl" alt="@post.Title" loading="lazy" />
+                                    </div>
+                                }
+                            }
+
+                            @if (post.Type == PostType.Recipe && post.PhotoUrl != null)
+                            {
+                                <div class="post-photo">
+                                    <img src="@post.PhotoUrl" alt="@post.Title" loading="lazy" />
+                                    @if (post.PhotoList.Count > 1)
+                                    {
+                                        <span class="photo-count">📷 @post.PhotoList.Count photos</span>
+                                    }
+                                    <div class="post-recipe-meta">
+                                        @if (post.Category != null)
+                                        {
+                                            <span>🏷 @post.Category</span>
+                                        }
+                                        @if (post.CookTimeMinutes != null)
+                                        {
+                                            <span>⏱ @post.CookTimeMinutes min</span>
+                                        }
+                                        @if (post.Difficulty != null)
+                                        {
+                                            <span class="difficulty @post.Difficulty.ToLower()">@post.Difficulty</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (post.Type == PostType.Video && post.VideoEmbedUrl != null)
+                            {
+                                var videoId = post.VideoEmbedUrl.Contains("/embed/")
+                                ? post.VideoEmbedUrl.Split("/embed/")[1].Split('?')[0]
+                                : "";
+                                var hqThumb = $"https://img.youtube.com/vi/{videoId}/hqdefault.jpg";
+
+                                <div class="video-inline-wrap">
+                                    <div class="video-thumb-overlay" id="vid-thumb-@post.Id"
+                                         onclick="playInlineVideo(@post.Id, '@post.VideoEmbedUrl')">
+                                        <img src="@hqThumb"
+                                             alt="@post.Title"
+                                             loading="lazy"
+                                             onerror="this.onerror=null;this.src='https://img.youtube.com/vi/@videoId/mqdefault.jpg'" />
+                                        <div class="play-overlay">
+                                            <div class="play-btn">▶</div>
+                                            @if (post.VideoDuration != null)
+                                            {
+                                                <span class="vid-duration">@post.VideoDuration</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <iframe id="vid-iframe-@post.Id"
+                                            style="display:none;width:100%;height:380px;border:none;"
+                                            allowfullscreen
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+                                    </iframe>
+                                </div>
+                            }
+
+                            @if (post.Type == PostType.Tip)
+                            {
+                                <div class="tip-banner">
+                                    <span class="tip-big-icon">@post.TipIcon</span>
+                                    @if (post.TipCategory != null)
+                                    {
+                                        <span class="tip-cat-badge">@post.TipCategory</span>
+                                    }
+                                </div>
+                            }
+
+                            @if (post.Type != PostType.Photo)
+                            {
+                                <div class="post-body">
+                                    <h3>
+                                        <a asp-controller="Post" asp-action="Details" asp-route-id="@post.Id">
+                                            @post.Title
+                                        </a>
+                                    </h3>
+                                    <p class="post-excerpt">
+                                        @{
+                                            var preview = post.Content.Replace('\n', ' ');
+                                            @(preview.Length > 200 ? preview[..200] + "…" : preview)
+                                        }
+                                    </p>
+                                </div>
+                            }
+
+                            <div class="post-footer">
+                                <button class="like-btn" id="like-@post.Id" onclick="likePost(@post.Id)">
+                                    ❤️ <span class="like-count">@post.Likes</span>
+                                </button>
+                                <a href="/Post/Details/@post.Id#comments"
+                                   class="comment-count" style="text-decoration:none;color:inherit;">💬 @post.Comments</a>
+                                <a asp-controller="Post" asp-action="Details"
+                                   asp-route-id="@post.Id" class="read-more-link">View post →</a>
+                            </div>
+
+                        </div>
+                    }
+                </div>
+
+                <div id="noPostsMsg" style="display:none;text-align:center;padding:3rem 0;">
+                    <p style="font-size:1.1rem;color:var(--text-light);">No posts in this category yet.</p>
+                    <a asp-controller="Post" asp-action="Create" class="btn-primary"
+                       style="margin-top:1rem;display:inline-block;">Be the first →</a>
+                </div>
+            </div>
+
+            <aside class="feed-sidebar">
+                <div class="sidebar-card">
+                    <h3>Share Your Story</h3>
+                    <p>Snap a food photo, share a recipe, or drop a cooking tip!</p>
+                    <div class="share-options">
+                        <a asp-controller="Post" asp-action="Create"
+                           asp-route-type="Photo" class="share-opt photo">
+                            <span>🖼️</span> Food Photo
+                        </a>
+                        <a asp-controller="Post" asp-action="Create"
+                           asp-route-type="Recipe" class="share-opt recipe">
+                            <span>📸</span> Post a Recipe
+                        </a>
+                        <a asp-controller="Post" asp-action="Create"
+                           asp-route-type="Video" class="share-opt video">
+                            <span>🎥</span> Share a Video
+                        </a>
+                        <a asp-controller="Post" asp-action="Create"
+                           asp-route-type="Tip" class="share-opt tip">
+                            <span>💡</span> Share a Tip
+                        </a>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+        function filterPosts(type, btn) {
+            document.querySelectorAll('.feed-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const cards = document.querySelectorAll('#postsContainer .post-card');
+            let visible = 0;
+
+            cards.forEach(card => {
+                const cardType = card.dataset.type;
+                const show = type === 'all' || cardType === type;
+                card.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+
+            document.getElementById('noPostsMsg').style.display = visible === 0 ? 'block' : 'none';
+        }
+
+        async function likePost(id) {
+            const btn = document.getElementById(`like-${id}`);
+            btn.disabled = true;
+            const res = await fetch(`/Post/ToggleLike/${id}`, {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token }
+            });
+            const data = await res.json();
+            btn.querySelector('.like-count').textContent = data.likes;
+            btn.classList.add('liked');
+            btn.disabled = false;
+        }
+
+        function playInlineVideo(id, embedUrl) {
+            const thumb = document.getElementById(`vid-thumb-${id}`);
+            const iframe = document.getElementById(`vid-iframe-${id}`);
+            iframe.src = embedUrl + '?autoplay=1&rel=0';
+            thumb.style.display = 'none';
+            iframe.style.display = 'block';
+        }
+    </script>
+}

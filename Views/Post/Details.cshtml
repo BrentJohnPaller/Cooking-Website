@@ -1,0 +1,533 @@
+@model CookingWebsite.Models.Post
+@using CookingWebsite.Models
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<AppUser> SignInManager
+@inject UserManager<AppUser> UserMgr
+@{
+    ViewData["Title"] = Model.Title;
+    var embedUrl = Model.VideoEmbedUrl ?? "";
+    var comments = (List<Comment>)ViewBag.Comments;
+    var userLikedPost = (bool)ViewBag.UserLikedPost;
+    var userLikedComments = (List<int>)ViewBag.UserLikedComments;
+    var currentUser = await UserMgr.GetUserAsync(User);
+    var authorPhotoUrl = (string?)ViewBag.AuthorPhotoUrl;
+}
+
+<section class="section" style="padding-top:3rem;">
+    <div class="container post-detail-container">
+
+        <a asp-controller="Post" asp-action="Index" class="back-link" style="color:var(--orange);">← Back to Community</a>
+
+        <div class="post-detail-layout">
+            <div class="post-detail-main">
+
+                <div class="post-type-badge @Model.Type.ToString().ToLower()" style="margin-bottom:1rem;display:inline-block;">
+                    @(Model.Type == PostType.Photo ? "🖼️ Food Photo" :
+                                        Model.Type == PostType.Recipe ? "📸 Recipe Post" :
+                                        Model.Type == PostType.Video ? "🎥 Video Post" : "💡 Tip Post")
+                </div>
+
+                <h1 style="font-family:var(--font-display);font-size:2.2rem;font-weight:900;margin-bottom:1rem;">
+                    @Model.Title
+                </h1>
+
+                <div class="detail-author-bar">
+                    @if (authorPhotoUrl != null)
+                    {
+                        <img src="@authorPhotoUrl" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="@Model.Author" />
+                    }
+                    else
+                    {
+                        <div class="author-avatar large av-orange">@Model.AuthorAvatar</div>
+                    }
+                    <div>
+                        <strong>@Model.Author</strong>
+                        <span>@Model.DatePosted.ToString("MMMM dd, yyyy 'at' h:mm tt")</span>
+                    </div>
+                    <div style="margin-left:auto;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            <button class="like-btn @(userLikedPost ? "liked" : "")" id="likeBtn"
+                                    onclick="toggleLike(@Model.Id)">
+                                @(userLikedPost ? "❤️" : "🤍") <span id="likeCount">@Model.Likes</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Login" class="like-btn">
+                                🤍 @Model.Likes
+                            </a>
+                        }
+                        <span style="color:var(--text-light);font-size:.9rem;">💬 @Model.Comments</span>
+                    </div>
+                </div>
+
+                @if (SignInManager.IsSignedIn(User) && currentUser?.DisplayName == Model.Author)
+                {
+                    <form asp-controller="Post" asp-action="Delete" asp-route-id="@Model.Id"
+                          method="post" style="margin-bottom:1.5rem;"
+                          onsubmit="return confirm('Delete this post permanently?')">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="delete-btn-full">🗑 Delete This Post</button>
+                    </form>
+                }
+
+                @if (Model.Type == PostType.Photo)
+                {
+                    <div class="post-full-content" style="margin-bottom:1rem;">
+                        @foreach (var line in Model.Content.Split('\n'))
+                        {
+                            var trimmed = line.TrimEnd();
+                            if (string.IsNullOrWhiteSpace(trimmed))
+                            {
+                                <br />
+                            }
+                            else if (trimmed.StartsWith("* ") || trimmed.StartsWith("- "))
+                            {
+                                <li style="margin-left:1.5rem;list-style:disc;">@trimmed.Substring(2)</li>
+                            }
+                            else if (trimmed.Length > 2 && char.IsDigit(trimmed[0]) && trimmed[1] == '.')
+                            {
+                                <p><strong>@trimmed</strong></p>
+                            }
+                            else
+                            {
+                                <p>@trimmed</p>
+                            }
+                        }
+                    </div>
+                    @if (Model.PhotoUrl != null)
+                    {
+                        <div class="fb-photo-display" style="margin-bottom:1.5rem;border-radius:var(--radius);overflow:hidden;">
+                            <img src="@Model.PhotoUrl" alt="@Model.Title"
+                                 style="width:100%;max-height:650px;object-fit:cover;display:block;" />
+                        </div>
+                    }
+                }
+
+                @if (Model.Type == PostType.Recipe && Model.PhotoList.Any())
+                {
+                    <div class="photo-gallery">
+                        <div class="gallery-main">
+                            <img id="mainPhoto" src="@Model.PhotoList[0]" alt="@Model.Title" />
+                        </div>
+                        @if (Model.PhotoList.Count > 1)
+                        {
+                            <div class="gallery-thumbs">
+                                @for (int i = 0; i < Model.PhotoList.Count; i++)
+                                {
+                                    <img src="@Model.PhotoList[i]" alt="Photo @(i + 1)"
+                                         class="thumb @(i == 0 ? "active" : "")"
+                                         onclick="switchPhoto(this)" />
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="detail-recipe-tags">
+                        @if (Model.Category != null)
+                        {
+                            <span class="recipe-badge">@Model.Category</span>
+                        }
+                        @if (Model.PrepTimeMinutes != null)
+                        {
+                            <span class="meta-tag">🥄 Prep: @Model.PrepTimeMinutes min</span>
+                        }
+                        @if (Model.CookTimeMinutes != null)
+                        {
+                            <span class="meta-tag">⏱ Cook: @Model.CookTimeMinutes min</span>
+                        }
+                        @if (Model.Servings != null)
+                        {
+                            <span class="meta-tag">👤 @Model.Servings servings</span>
+                        }
+                        @if (Model.Difficulty != null)
+                        {
+                            <span class="meta-tag difficulty @Model.Difficulty.ToLower()">@Model.Difficulty</span>
+                        }
+                    </div>
+                }
+
+                @if (Model.Type == PostType.Video && Model.VideoEmbedUrl != null)
+                {
+                    var detailVideoId = Model.VideoEmbedUrl.Contains("/embed/")
+                    ? Model.VideoEmbedUrl.Split("/embed/")[1].Split('?')[0] : "";
+                    var detailHqThumb = $"https://img.youtube.com/vi/{detailVideoId}/hqdefault.jpg";
+                    <div class="video-inline-wrap" style="margin-bottom:1.5rem;">
+                        <div class="video-thumb-overlay" id="vid-thumb-detail" onclick="playDetailVideo()">
+                            <img src="@detailHqThumb" alt="@Model.Title"
+                                 style="width:100%;max-height:500px;object-fit:cover;display:block;"
+                                 onerror="this.onerror=null;this.src='https://img.youtube.com/vi/@detailVideoId/mqdefault.jpg'" />
+                            <div class="play-overlay"><div class="play-btn">▶</div></div>
+                        </div>
+                        <iframe id="vid-iframe-detail" style="display:none;width:100%;height:500px;border:none;"
+                                allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+                        </iframe>
+                    </div>
+                }
+
+                @if (Model.Type == PostType.Tip)
+                {
+                    <div class="tip-detail-banner">
+                        <span style="font-size:4rem;">@Model.TipIcon</span>
+                        @if (Model.TipCategory != null)
+                        {
+                            <span class="tip-cat-badge">@Model.TipCategory</span>
+                        }
+                    </div>
+                }
+
+                @if (Model.Type != PostType.Photo)
+                {
+                    <div class="post-full-content">
+                        @foreach (var line in Model.Content.Split('\n'))
+                        {
+                            var trimmed = line.TrimEnd();
+                            if (string.IsNullOrWhiteSpace(trimmed))
+                            {
+                                <br />
+                            }
+                            else if (trimmed.StartsWith("* ") || trimmed.StartsWith("- "))
+                            {
+                                <li style="margin-left:1.5rem;list-style:disc;">@trimmed.Substring(2)</li>
+                            }
+                            else if (trimmed.Length > 2 && char.IsDigit(trimmed[0]) && trimmed[1] == '.')
+                            {
+                                <p><strong>@trimmed</strong></p>
+                            }
+                            else
+                            {
+                                <p>@trimmed</p>
+                            }
+                        }
+                    </div>
+                }
+
+                @if (Model.Type == PostType.Recipe && (Model.IngredientList.Any() || Model.StepList.Any()))
+                {
+                    <div class="recipe-detail-body" style="margin-top:2rem;">
+                        @if (Model.IngredientList.Any())
+                        {
+                            <div class="ingredients-col">
+                                <h2>Ingredients</h2>
+                                <ul class="ingredients-list">
+                                    @foreach (var ing in Model.IngredientList)
+                                    {
+                                        <li>
+                                            <label class="ingredient-item">
+                                                <input type="checkbox" class="ingredient-check" />
+                                                <span>@ing</span>
+                                            </label>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        @if (Model.StepList.Any())
+                        {
+                            <div class="steps-col">
+                                <h2>Instructions</h2>
+                                <ol class="steps-list">
+                                    @{
+                                        int n = 1;
+                                    }
+                                    @foreach (var step in Model.StepList)
+                                    {
+                                        <li class="step-item">
+                                            <div class="step-num">@n</div>
+                                            <p>@step</p>
+                                        </li>
+                                        n++;
+                                    }
+                                </ol>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="comments-section" id="comments">
+                    <h2 class="comments-title">💬 Comments (@comments.Count)</h2>
+
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        <form asp-controller="Post" asp-action="AddComment" method="post" class="comment-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="postId" value="@Model.Id" />
+                            <div class="comment-input-row">
+                                @if (currentUser?.ProfilePhotoUrl != null)
+                                {
+                                    <img src="@currentUser.ProfilePhotoUrl" class="comment-avatar-img" alt="You" />
+                                }
+                                else
+                                {
+                                    <div class="author-avatar" style="flex-shrink:0;">
+                                        @string.Concat((currentUser?.DisplayName ?? "U").Split(' ').Take(2).Select(w => char.ToUpper(w[0]).ToString()))
+                                    </div>
+                                }
+                                <textarea name="content" class="comment-textarea" rows="2"
+                                      placeholder="Write a comment..." required></textarea>
+                            </div>
+                            <div style="text-align:right;margin-top:.5rem;">
+                                <button type="submit" class="btn-primary" style="padding:.5rem 1.25rem;font-size:.9rem;">Post Comment</button>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="comment-login-prompt">
+                            <a asp-controller="Account" asp-action="Login">Log in</a> to leave a comment.
+                        </div>
+                    }
+
+                    <div class="comments-list">
+                        @foreach (var comment in comments)
+                        {
+                            var commentLiked = userLikedComments.Contains(comment.Id);
+                            <div class="comment-item" id="comment-@comment.Id">
+                                @if (comment.User.ProfilePhotoUrl != null)
+                                {
+                                    <img src="@comment.User.ProfilePhotoUrl" class="comment-avatar-img" alt="@comment.User.DisplayName" />
+                                }
+                                else
+                                {
+                                    <div class="author-avatar" style="flex-shrink:0;width:38px;height:38px;font-size:.8rem;">
+                                        @string.Concat(comment.User.DisplayName.Split(' ').Take(2).Select(w => char.ToUpper(w[0]).ToString()))
+                                    </div>
+                                }
+                                <div class="comment-body">
+                                    <div class="comment-header">
+                                        <strong>@comment.User.DisplayName</strong>
+                                        <span class="comment-date">@comment.DatePosted.ToString("MMM dd, yyyy · h:mm tt")</span>
+                                    </div>
+                                    <p class="comment-content">@comment.Content</p>
+                                    <div class="comment-actions">
+                                        @if (SignInManager.IsSignedIn(User))
+                                        {
+                                            <button class="comment-like-btn @(commentLiked ? "liked" : "")"
+                                                    id="clbtn-@comment.Id"
+                                                    onclick="toggleCommentLike(@comment.Id)">
+                                                @(commentLiked ? "❤️" : "🤍") <span id="clcount-@comment.Id">@comment.Likes</span>
+                                            </button>
+                                            <button class="comment-reply-btn" onclick="toggleReplyForm(@comment.Id)">
+                                                💬 Reply
+                                            </button>
+                                            @if (currentUser?.Id == comment.UserId)
+                                            {
+                                                <form asp-controller="Post" asp-action="DeleteComment" method="post" style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="commentId" value="@comment.Id" />
+                                                    <input type="hidden" name="postId" value="@Model.Id" />
+                                                    <button type="submit" class="comment-delete-btn"
+                                                            onclick="return confirm('Delete this comment?')">
+                                                        🗑
+                                                    </button>
+                                                </form>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span style="color:var(--text-light);font-size:.85rem;">🤍 @comment.Likes</span>
+                                        }
+                                    </div>
+
+                                    @if (SignInManager.IsSignedIn(User))
+                                    {
+                                        <form asp-controller="Post" asp-action="AddComment" method="post"
+                                              class="reply-form" id="reply-form-@comment.Id" style="display:none;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="postId" value="@Model.Id" />
+                                            <input type="hidden" name="parentCommentId" value="@comment.Id" />
+                                            <div class="comment-input-row">
+                                                <textarea name="content" class="comment-textarea" rows="2"
+                                                  placeholder="Write a reply..." required></textarea>
+                                            </div>
+                                            <div style="text-align:right;margin-top:.4rem;">
+                                                <button type="button" onclick="toggleReplyForm(@comment.Id)"
+                                                        class="btn-outline" style="padding:.35rem .9rem;font-size:.85rem;">
+                                                    Cancel
+                                                </button>
+                                                <button type="submit" class="btn-primary"
+                                                        style="padding:.35rem .9rem;font-size:.85rem;">
+                                                    Reply
+                                                </button>
+                                            </div>
+                                        </form>
+                                    }
+
+                                    @if (comment.Replies.Any())
+                                    {
+                                        <div class="replies-list">
+                                            @foreach (var reply in comment.Replies.OrderBy(r => r.DatePosted))
+                                            {
+                                                var replyLiked = userLikedComments.Contains(reply.Id);
+                                                <div class="comment-item reply-item" id="comment-@reply.Id">
+                                                    @if (reply.User.ProfilePhotoUrl != null)
+                                                    {
+                                                        <img src="@reply.User.ProfilePhotoUrl" class="comment-avatar-img small" alt="@reply.User.DisplayName" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="author-avatar" style="flex-shrink:0;width:32px;height:32px;font-size:.75rem;">
+                                                            @string.Concat(reply.User.DisplayName.Split(' ').Take(2).Select(w => char.ToUpper(w[0]).ToString()))
+                                                        </div>
+                                                    }
+                                                    <div class="comment-body">
+                                                        <div class="comment-header">
+                                                            <strong>@reply.User.DisplayName</strong>
+                                                            <span class="comment-date">@reply.DatePosted.ToString("MMM dd · h:mm tt")</span>
+                                                        </div>
+                                                        <p class="comment-content">@reply.Content</p>
+                                                        <div class="comment-actions">
+                                                            @if (SignInManager.IsSignedIn(User))
+                                                            {
+                                                                <button class="comment-like-btn @(replyLiked ? "liked" : "")"
+                                                                        id="clbtn-@reply.Id"
+                                                                        onclick="toggleCommentLike(@reply.Id)">
+                                                                    @(replyLiked ? "❤️" : "🤍") <span id="clcount-@reply.Id">@reply.Likes</span>
+                                                                </button>
+                                                                @if (currentUser?.Id == reply.UserId)
+                                                                {
+                                                                    <form asp-controller="Post" asp-action="DeleteComment" method="post" style="display:inline;">
+                                                                        @Html.AntiForgeryToken()
+                                                                        <input type="hidden" name="commentId" value="@reply.Id" />
+                                                                        <input type="hidden" name="postId" value="@Model.Id" />
+                                                                        <button type="submit" class="comment-delete-btn"
+                                                                                onclick="return confirm('Delete this reply?')">
+                                                                            🗑
+                                                                        </button>
+                                                                    </form>
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                <span style="color:var(--text-light);font-size:.85rem;">🤍 @reply.Likes</span>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (!comments.Any())
+                        {
+                            <div style="text-align:center;padding:2rem;color:var(--text-light);">
+                                <p>No comments yet. Be the first to comment!</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+            </div>
+
+            <aside class="post-detail-sidebar">
+                <div class="sidebar-card">
+                    <h3>About the Author</h3>
+                    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem;">
+                        @if (authorPhotoUrl != null)
+                        {
+                            <img src="@authorPhotoUrl" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="@Model.Author" />
+                        }
+                        else
+                        {
+                            <div class="author-avatar large av-orange">@Model.AuthorAvatar</div>
+                        }
+                        <div>
+                            <strong>@Model.Author</strong><br />
+                            <small style="color:var(--text-light);">Community Member</small>
+                        </div>
+                    </div>
+                </div>
+
+                @if (((List<Post>)ViewBag.Related).Any())
+                {
+                    <div class="sidebar-card">
+                        <h3>More Like This</h3>
+                        <div class="related-posts">
+                            @foreach (var r in (List<Post>)ViewBag.Related)
+                            {
+                                <a asp-controller="Post" asp-action="Details" asp-route-id="@r.Id" class="related-post-item">
+                                    @if (r.PhotoUrl != null)
+                                    {
+                                        <img src="@r.PhotoUrl" alt="@r.Title" />
+                                    }
+                                    else if (r.VideoThumbnail != null)
+                                    {
+                                        <img src="@r.VideoThumbnail" alt="@r.Title" />
+                                    }
+                                    else
+                                    {
+                                        <div class="related-tip-thumb">@r.TipIcon</div>
+                                    }
+                                    <div>
+                                        <strong>@r.Title</strong>
+                                        <span>@r.DatePosted.ToString("MMM dd")</span>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <a asp-controller="Post" asp-action="Create" class="btn-primary" style="display:block;text-align:center;">
+                    + Share Your Own Post
+                </a>
+            </aside>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        function switchPhoto(img) {
+            document.getElementById('mainPhoto').src = img.src;
+            document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+            img.classList.add('active');
+        }
+
+        async function toggleLike(id) {
+            const btn = document.getElementById('likeBtn');
+            btn.disabled = true;
+            const res = await fetch(`/Post/ToggleLike/${id}`, { method: 'POST' });
+            const data = await res.json();
+            document.getElementById('likeCount').textContent = data.likes;
+            btn.innerHTML = (data.liked ? '❤️' : '🤍') + ' <span id="likeCount">' + data.likes + '</span>';
+            btn.className = 'like-btn' + (data.liked ? ' liked' : '');
+            btn.disabled = false;
+        }
+
+        async function toggleCommentLike(id) {
+            const btn = document.getElementById(`clbtn-${id}`);
+            btn.disabled = true;
+            const res = await fetch(`/Post/ToggleCommentLike/${id}`, { method: 'POST' });
+            const data = await res.json();
+            btn.innerHTML = (data.liked ? '❤️' : '🤍') + ' <span id="clcount-' + id + '">' + data.likes + '</span>';
+            btn.className = 'comment-like-btn' + (data.liked ? ' liked' : '');
+            btn.disabled = false;
+        }
+
+        function toggleReplyForm(commentId) {
+            const form = document.getElementById(`reply-form-${commentId}`);
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form.style.display === 'block') form.querySelector('textarea').focus();
+        }
+
+        function playDetailVideo() {
+            const thumb = document.getElementById('vid-thumb-detail');
+            const iframe = document.getElementById('vid-iframe-detail');
+            iframe.src = '@embedUrl?autoplay=1&rel=0';
+            thumb.style.display = 'none';
+            iframe.style.display = 'block';
+        }
+
+        document.querySelectorAll('.ingredient-check').forEach(cb => {
+            cb.addEventListener('change', function () {
+                const span = this.nextElementSibling;
+                span.style.textDecoration = this.checked ? 'line-through' : '';
+                span.style.opacity = this.checked ? '0.5' : '';
+            });
+        });
+    </script>
+}

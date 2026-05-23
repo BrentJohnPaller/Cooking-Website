@@ -1,0 +1,91 @@
+﻿@model CookingWebsite.Models.AppUser
+@using CookingWebsite.Models
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<section class="section" style="padding-top:3rem;">
+    <div class="container" style="max-width:900px;">
+
+        <div class="profile-header-card">
+            <div class="profile-avatar-wrap">
+                @if (!string.IsNullOrEmpty(Model.ProfilePhotoUrl))
+                {
+                    <img src="@Model.ProfilePhotoUrl" alt="@Model.DisplayName" class="profile-avatar-img" />
+                }
+                else
+                {
+                    <div class="profile-avatar-initials">
+                        @string.Concat(Model.DisplayName.Split(' ').Take(2).Select(w => char.ToUpper(w[0]).ToString()))
+                    </div>
+                }
+            </div>
+            <div class="profile-info">
+                <h1>@Model.DisplayName</h1>
+                <p style="color:var(--text-light);">@Model.Email</p>
+                @if (!string.IsNullOrEmpty(Model.Bio))
+                {
+                    <p style="margin-top:.5rem;">@Model.Bio</p>
+                }
+                <p style="color:var(--text-light);font-size:.85rem;margin-top:.5rem;">
+                    Member since @Model.JoinedDate.ToString("MMMM yyyy")
+                </p>
+                <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem;">
+                    <a asp-action="EditProfile" class="btn-primary">✏️ Edit Profile</a>
+                    <a asp-action="ChangePassword" class="btn-outline">🔒 Change Password</a>
+                </div>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert-success" style="margin-bottom:1.5rem;">✅ @TempData["Success"]</div>
+        }
+
+        @{
+            var posts = (List<Post>)ViewBag.Posts;
+        }
+        <h2 style="font-family:var(--font-display);margin-bottom:1.5rem;">My Posts (@posts.Count)</h2>
+
+        @if (!posts.Any())
+        {
+            <div style="text-align:center;padding:3rem;color:var(--text-light);">
+                <p>You haven't posted anything yet.</p>
+                <a asp-controller="Post" asp-action="Create" class="btn-primary" style="display:inline-block;margin-top:1rem;">Share your first post</a>
+            </div>
+        }
+        else
+        {
+            <div class="recipes-grid">
+                @foreach (var post in posts)
+                {
+                    <div class="recipe-card">
+                        @if (post.PhotoUrl != null)
+                        {
+                            <div class="recipe-img">
+                                <img src="@post.PhotoUrl" alt="@post.Title" />
+                                <span class="recipe-badge">@post.Type</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="recipe-img" style="background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:3rem;">
+                                @(post.Type == PostType.Tip ? post.TipIcon ?? "💡" : post.Type == PostType.Video ? "🎥" : "📝")
+                            </div>
+                        }
+                        <div class="recipe-info">
+                            <h3>@post.Title</h3>
+                            <p>@(post.Content.Length > 80 ? post.Content[..80] + "…" : post.Content)</p>
+                            <div class="recipe-meta">
+                                <span>❤️ @post.Likes</span>
+                                <span>💬 @post.Comments</span>
+                                <span>@post.DatePosted.ToString("MMM dd")</span>
+                            </div>
+                            <a asp-controller="Post" asp-action="Details" asp-route-id="@post.Id" class="btn-card">View →</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</section>
